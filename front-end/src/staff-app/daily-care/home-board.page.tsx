@@ -9,6 +9,7 @@ import { Person } from "shared/models/person"
 import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
+import { faCoffee } from "@fortawesome/free-solid-svg-icons"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
@@ -36,6 +37,18 @@ export const HomeBoardPage: React.FC = () => {
     return 0
   }
 
+  const handleSearch = (query: string) => {
+    if (query && query.length > 0) {
+      if (studentList && studentList.length) {
+        setStudentList(studentList.filter((s) => s.first_name.concat(" ", s.last_name).toLowerCase().match(query.toLowerCase())))
+      }
+    }
+  }
+
+  const toggleSortType = () => {
+    setSortType((prevState) => !prevState)
+  }
+
   const onToolbarAction = (action: ToolbarAction, value?: string) => {
     if (action === "roll") {
       setIsRollMode(true)
@@ -46,11 +59,11 @@ export const HomeBoardPage: React.FC = () => {
         if (sortType) {
           const sorted = copy.sort(sortAsc)
           setStudentList(sorted)
-          setSortType((prevState) => !prevState)
+          toggleSortType()
         } else {
           const sorted = copy.sort(sortDsc)
           setStudentList(sorted)
-          setSortType((prevState) => !prevState)
+          toggleSortType()
         }
       }
     }
@@ -62,10 +75,14 @@ export const HomeBoardPage: React.FC = () => {
     }
   }
 
+  const handleEmpty = () => {
+    setStudentList(data?.students)
+  }
+
   return (
     <>
       <S.PageContainer>
-        <Toolbar onItemClick={onToolbarAction} sortType={sortType} />
+        <Toolbar onItemClick={onToolbarAction} sortType={sortType} handleSearch={handleSearch} handleEmpty={handleEmpty} />
 
         {loadState === "loading" && (
           <CenteredContainer>
@@ -96,22 +113,37 @@ type ToolbarAction = "roll" | "sort"
 interface ToolbarProps {
   onItemClick: (action: ToolbarAction, value?: string) => void
   sortType: boolean
+  handleSearch: (query: string) => void
+  handleEmpty: () => void
 }
 const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const { onItemClick, sortType } = props
+  const { onItemClick, sortType, handleSearch, handleEmpty } = props
+  const [query, setQuery] = useState<string>("")
+
+  const handleOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(event.target.value)
+  }
+
   return (
     <S.ToolbarContainer>
       <div style={Styles.mouseCursor} onClick={() => onItemClick("sort")}>
         <span>First Name</span>
-        {sortType ? (
-          <span>
-            <FontAwesomeIcon icon="angle-up" />
-          </span>
-        ) : (
-          <span>y</span>
-        )}
       </div>
-      <div>Search</div>
+      <div>
+        <input
+          style={Styles.searchBar}
+          type="text"
+          value={query}
+          onInput={handleOnChange}
+          onKeyUp={() => {
+            handleSearch(query)
+            if (query.trim().length == 0) {
+              handleEmpty()
+            }
+          }}
+          placeholder="Search here ..."
+        ></input>
+      </div>
       <S.Button onClick={() => onItemClick("roll")}>Start Roll</S.Button>
     </S.ToolbarContainer>
   )
@@ -141,10 +173,20 @@ const S = {
       border-radius: ${BorderRadius.default};
     }
   `,
+  Input: styled.input`
+    padding: ${Spacing.u2};
+    font-weight: ${FontWeight.strong};
+    border-radius: ${BorderRadius.default};
+  `,
 }
 
 const Styles = {
   mouseCursor: {
     cursor: "pointer",
+  },
+  searchBar: {
+    paddingLeft: 5,
+    outerHeight: 20,
+    BorderRadius: 5,
   },
 }
