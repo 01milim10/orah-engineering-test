@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from "react"
 import styled from "styled-components"
-import Button from "@material-ui/core/ButtonBase"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { Spacing, BorderRadius, FontWeight } from "shared/styles/styles"
-import { Colors } from "shared/styles/colors"
+import { Spacing } from "shared/styles/styles"
 import { CenteredContainer } from "shared/components/centered-container/centered-container.component"
 import { Person } from "shared/models/person"
+import { sortFn } from "shared/helpers/sort"
 import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
-import { faCoffee } from "@fortawesome/free-solid-svg-icons"
+import Toolbar, { ToolbarAction } from "../components/toolbar"
+import { search } from "shared/helpers/search"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
   const [studentList, setStudentList] = useState<Person[]>()
-  const [sortType, setSortType] = useState(false)
+  const [sortType, setSortType] = useState<boolean>(false)
+  const [sortBy, setSortBy] = useState<string>("first_name")
 
   useEffect(() => {
     void getStudents()
@@ -25,22 +26,14 @@ export const HomeBoardPage: React.FC = () => {
     setStudentList(data?.students)
   }, [data])
 
-  const sortAsc = (a: Person, b: Person) => {
-    if (a.first_name.toLowerCase() > b.first_name.toLowerCase()) return 1
-    if (a.first_name.toLowerCase() < b.first_name.toLowerCase()) return -1
-    return 0
-  }
-
-  const sortDsc = (a: Person, b: Person) => {
-    if (a.first_name.toLowerCase() < b.first_name.toLowerCase()) return 1
-    if (a.first_name.toLowerCase() > b.first_name.toLowerCase()) return -1
-    return 0
-  }
+  useEffect(() => {
+    onToolbarAction("sort")
+  }, [sortType, sortBy])
 
   const handleSearch = (query: string) => {
     if (query && query.length > 0) {
       if (studentList && studentList.length) {
-        setStudentList(studentList.filter((s) => s.first_name.concat(" ", s.last_name).toLowerCase().match(query.toLowerCase())))
+        setStudentList(search(studentList, query))
       }
     }
   }
@@ -50,6 +43,8 @@ export const HomeBoardPage: React.FC = () => {
   }
 
   const onToolbarAction = (action: ToolbarAction, value?: string) => {
+    if (value && value.length > 0) setSortBy(value)
+
     if (action === "roll") {
       setIsRollMode(true)
     }
@@ -57,13 +52,11 @@ export const HomeBoardPage: React.FC = () => {
       if (studentList && studentList.length) {
         const copy = [...studentList]
         if (sortType) {
-          const sorted = copy.sort(sortAsc)
+          const sorted = sortFn(copy, sortBy, sortType)
           setStudentList(sorted)
-          toggleSortType()
         } else {
-          const sorted = copy.sort(sortDsc)
+          const sorted = sortFn(copy, sortBy, sortType)
           setStudentList(sorted)
-          toggleSortType()
         }
       }
     }
@@ -82,7 +75,7 @@ export const HomeBoardPage: React.FC = () => {
   return (
     <>
       <S.PageContainer>
-        <Toolbar onItemClick={onToolbarAction} sortType={sortType} handleSearch={handleSearch} handleEmpty={handleEmpty} />
+        <Toolbar onItemClick={onToolbarAction} sortType={sortType} handleSearch={handleSearch} handleEmpty={handleEmpty} toggleSortType={toggleSortType} />
 
         {loadState === "loading" && (
           <CenteredContainer>
@@ -109,46 +102,6 @@ export const HomeBoardPage: React.FC = () => {
   )
 }
 
-type ToolbarAction = "roll" | "sort"
-interface ToolbarProps {
-  onItemClick: (action: ToolbarAction, value?: string) => void
-  sortType: boolean
-  handleSearch: (query: string) => void
-  handleEmpty: () => void
-}
-const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const { onItemClick, sortType, handleSearch, handleEmpty } = props
-  const [query, setQuery] = useState<string>("")
-
-  const handleOnChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(event.target.value)
-  }
-
-  return (
-    <S.ToolbarContainer>
-      <div style={Styles.mouseCursor} onClick={() => onItemClick("sort")}>
-        <span>First Name</span>
-      </div>
-      <div>
-        <input
-          style={Styles.searchBar}
-          type="text"
-          value={query}
-          onInput={handleOnChange}
-          onKeyUp={() => {
-            handleSearch(query)
-            if (query.trim().length == 0) {
-              handleEmpty()
-            }
-          }}
-          placeholder="Search here ..."
-        ></input>
-      </div>
-      <S.Button onClick={() => onItemClick("roll")}>Start Roll</S.Button>
-    </S.ToolbarContainer>
-  )
-}
-
 const S = {
   PageContainer: styled.div`
     display: flex;
@@ -156,37 +109,4 @@ const S = {
     width: 50%;
     margin: ${Spacing.u4} auto 140px;
   `,
-  ToolbarContainer: styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: #fff;
-    background-color: ${Colors.blue.base};
-    padding: 6px 14px;
-    font-weight: ${FontWeight.strong};
-    border-radius: ${BorderRadius.default};
-  `,
-  Button: styled(Button)`
-    && {
-      padding: ${Spacing.u2};
-      font-weight: ${FontWeight.strong};
-      border-radius: ${BorderRadius.default};
-    }
-  `,
-  Input: styled.input`
-    padding: ${Spacing.u2};
-    font-weight: ${FontWeight.strong};
-    border-radius: ${BorderRadius.default};
-  `,
-}
-
-const Styles = {
-  mouseCursor: {
-    cursor: "pointer",
-  },
-  searchBar: {
-    paddingLeft: 5,
-    outerHeight: 20,
-    BorderRadius: 5,
-  },
 }
