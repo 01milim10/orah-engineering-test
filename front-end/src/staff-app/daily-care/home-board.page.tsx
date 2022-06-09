@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { Spacing } from "shared/styles/styles"
@@ -10,11 +10,14 @@ import { StudentListTile } from "staff-app/components/student-list-tile/student-
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
 import Toolbar, { ToolbarAction } from "../components/toolbar"
 import { search } from "shared/helpers/search"
+import { RolllStateType } from "shared/models/roll"
+import { add, get, LocalStorageKey } from "shared/helpers/local-storage"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
   const [studentList, setStudentList] = useState<Person[]>()
+  const [filtered, setFiltered] = useState<boolean>(false)
   const [sortType, setSortType] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>("first_name")
 
@@ -29,6 +32,10 @@ export const HomeBoardPage: React.FC = () => {
   useEffect(() => {
     onToolbarAction("sort")
   }, [sortType, sortBy])
+
+  useEffect(() => {
+    setRollCount(initialRollCount)
+  }, [isRollMode])
 
   const handleSearch = (query: string) => {
     if (query && query.length > 0) {
@@ -62,15 +69,70 @@ export const HomeBoardPage: React.FC = () => {
     }
   }
 
-  const onActiveRollAction = (action: ActiveRollAction) => {
+  const onActiveRollAction = (action: ActiveRollAction, type?: string) => {
+    console.log(action, type)
+
     if (action === "exit") {
       setIsRollMode(false)
+    } else if (action === "filter") {
+      if (!filtered) {
+        add(LocalStorageKey.students, studentList)
+        if (studentList && studentList.length) {
+          let copy = [...studentList]
+
+          if (type === "present") {
+            const filtered = copy.filter((student) => student.rollState === "present")
+            setStudentList(filtered)
+          } else if (type === "late") {
+            const filtered = copy.filter((student) => student.rollState === "late")
+            setStudentList(filtered)
+          } else {
+            const filtered = copy.filter((student) => student.rollState === "absent")
+            setStudentList(filtered)
+          }
+        }
+      } else {
+        setStudentList(get<Person[]>(LocalStorageKey.students))
+        if (studentList && studentList.length) {
+          let copy = [...studentList]
+
+          if (type === "present") {
+            const filtered = copy.filter((student) => student.rollState === "present")
+            setStudentList(filtered)
+          } else if (type === "late") {
+            const filtered = copy.filter((student) => student.rollState === "late")
+            setStudentList(filtered)
+          } else {
+            const filtered = copy.filter((student) => student.rollState === "absent")
+            setStudentList(filtered)
+          }
+        }
+      }
+      setFiltered((prevState) => !prevState)
     }
   }
 
   const handleEmpty = () => {
+    if (studentList && studentList.length) {
+      setStudentList([...studentList])
+    }
     setStudentList(data?.students)
   }
+
+  const initialRollCount = {
+    presentCount: 0,
+    absentCount: 0,
+    lateCount: 0,
+  }
+
+  const [rollCount, setRollCount] = useState<RollCount>(initialRollCount)
+
+  let stateList: StateList[] = [
+    { type: "all", count: rollCount.presentCount + rollCount.absentCount + rollCount.lateCount },
+    { type: "present", count: rollCount.presentCount },
+    { type: "late", count: rollCount.lateCount },
+    { type: "absent", count: rollCount.absentCount },
+  ]
 
   return (
     <>
@@ -86,7 +148,7 @@ export const HomeBoardPage: React.FC = () => {
         {loadState === "loaded" && studentList && (
           <>
             {studentList?.map((s) => (
-              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
+              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} rollCount={rollCount} setRollCount={setRollCount} />
             ))}
           </>
         )}
@@ -97,7 +159,7 @@ export const HomeBoardPage: React.FC = () => {
           </CenteredContainer>
         )}
       </S.PageContainer>
-      <ActiveRollOverlay isActive={isRollMode} onItemClick={onActiveRollAction} />
+      <ActiveRollOverlay isActive={isRollMode} onItemClick={onActiveRollAction} stateList={stateList} />
     </>
   )
 }
@@ -110,3 +172,16 @@ const S = {
     margin: ${Spacing.u4} auto 140px;
   `,
 }
+
+interface RollCount {
+  presentCount: number
+  absentCount: number
+  lateCount: number
+}
+
+interface StateList {
+  type: ItemType
+  count: number
+}
+
+type ItemType = RolllStateType | "all"

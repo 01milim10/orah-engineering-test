@@ -7,6 +7,7 @@ export function generateStudent(id: number) {
     id,
     first_name: nameTokens[getRandomInt(0, nameTokens.length - 1)],
     last_name: nameTokens[getRandomInt(0, nameTokens.length - 1)],
+    rollState: "unmark",
   }
 }
 
