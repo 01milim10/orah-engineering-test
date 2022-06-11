@@ -11,7 +11,7 @@ import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active
 import Toolbar, { ToolbarAction } from "../components/toolbar"
 import { search } from "shared/helpers/search"
 import { RolllStateType } from "shared/models/roll"
-import { add, get, LocalStorageKey } from "shared/helpers/local-storage"
+import _, { Dictionary } from "lodash"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
@@ -20,6 +20,8 @@ export const HomeBoardPage: React.FC = () => {
   const [filtered, setFiltered] = useState<boolean>(false)
   const [sortType, setSortType] = useState<boolean>(false)
   const [sortBy, setSortBy] = useState<string>("first_name")
+  const [filterBy, setFilterBy] = useState<ItemType>()
+  const [filteredList, setFilteredList] = useState<Dictionary<Person[]>>()
 
   useEffect(() => {
     void getStudents()
@@ -69,53 +71,35 @@ export const HomeBoardPage: React.FC = () => {
     }
   }
 
-  const onActiveRollAction = (action: ActiveRollAction, type?: string) => {
-    console.log(action, type)
+  useEffect(() => {
+    if (!filtered) {
+      setFilteredList(_.groupBy(studentList, "rollState"))
+      setFiltered(true)
+    }
+    if (filterBy && filterBy.length) filterList(filterBy)
+  }, [filterBy])
 
+  const filterList = (filterBy: ItemType) => {
+    if (filterBy === "all") {
+      setStudentList(studentList)
+    } else if (filterBy === "present") {
+      setStudentList(filteredList?.present)
+    } else if (filterBy === "late") {
+      setStudentList(filteredList?.late)
+    } else if (filterBy === "absent") {
+      setStudentList(filteredList?.absent)
+    }
+  }
+
+  const onActiveRollAction = (action: ActiveRollAction, type?: ItemType) => {
     if (action === "exit") {
       setIsRollMode(false)
     } else if (action === "filter") {
-      if (!filtered) {
-        add(LocalStorageKey.students, studentList)
-        if (studentList && studentList.length) {
-          let copy = [...studentList]
-
-          if (type === "present") {
-            const filtered = copy.filter((student) => student.rollState === "present")
-            setStudentList(filtered)
-          } else if (type === "late") {
-            const filtered = copy.filter((student) => student.rollState === "late")
-            setStudentList(filtered)
-          } else {
-            const filtered = copy.filter((student) => student.rollState === "absent")
-            setStudentList(filtered)
-          }
-        }
-      } else {
-        setStudentList(get<Person[]>(LocalStorageKey.students))
-        if (studentList && studentList.length) {
-          let copy = [...studentList]
-
-          if (type === "present") {
-            const filtered = copy.filter((student) => student.rollState === "present")
-            setStudentList(filtered)
-          } else if (type === "late") {
-            const filtered = copy.filter((student) => student.rollState === "late")
-            setStudentList(filtered)
-          } else {
-            const filtered = copy.filter((student) => student.rollState === "absent")
-            setStudentList(filtered)
-          }
-        }
-      }
-      setFiltered((prevState) => !prevState)
+      setFilterBy(type)
     }
   }
 
   const handleEmpty = () => {
-    if (studentList && studentList.length) {
-      setStudentList([...studentList])
-    }
     setStudentList(data?.students)
   }
 

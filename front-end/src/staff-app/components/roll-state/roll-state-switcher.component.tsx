@@ -8,6 +8,7 @@ interface Props {
   onStateChange?: (newState: RolllStateType) => void
   rollCount: RollCount
   setRollCount: (rollCount: RollCount) => void
+  stdRollState?: RolllStateType
 }
 interface RollCount {
   presentCount: number

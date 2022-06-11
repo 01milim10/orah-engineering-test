@@ -9,7 +9,7 @@ export type ActiveRollAction = "filter" | "exit"
 interface Props {
   isActive: boolean
   stateList: StateList[]
-  onItemClick: (action: ActiveRollAction, value?: string) => void
+  onItemClick: (action: ActiveRollAction, value?: ItemType) => void
 }
 
 export const ActiveRollOverlay: React.FC<Props> = (props) => {
