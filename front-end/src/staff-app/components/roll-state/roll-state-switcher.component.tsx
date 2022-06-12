@@ -8,14 +8,15 @@ interface Props {
   onStateChange?: (newState: RolllStateType) => void
   rollCount: RollCount
   setRollCount: (rollCount: RollCount) => void
-  stdRollState?: RolllStateType
+  stdRollState: RolllStateType
+  isFiltered: boolean
 }
 interface RollCount {
   presentCount: number
   absentCount: number
   lateCount: number
 }
-export const RollStateSwitcher: React.FC<Props> = ({ initialState = "unmark", size = 40, onStateChange, setRollCount, rollCount }) => {
+export const RollStateSwitcher: React.FC<Props> = ({ initialState = "unmark", size = 40, onStateChange, setRollCount, rollCount, stdRollState, isFiltered }) => {
   const [rollState, setRollState] = useState(initialState)
   const [counter, setCounter] = useState(0)
 
@@ -46,6 +47,10 @@ export const RollStateSwitcher: React.FC<Props> = ({ initialState = "unmark", si
       onStateChange(next)
     }
     setCounter((prevState) => ++prevState)
+  }
+
+  if (isFiltered) {
+    return <RollStateIcon type={stdRollState} size={size} onClick={onClick} />
   }
 
   return <RollStateIcon type={rollState} size={size} onClick={onClick} />

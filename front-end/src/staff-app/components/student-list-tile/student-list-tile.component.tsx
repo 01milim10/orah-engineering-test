@@ -12,13 +12,15 @@ interface Props {
   student: Person
   rollCount: RollCount
   setRollCount: (rollCount: RollCount) => void
+  stdRollState: RolllStateType
+  isFiltered: boolean
 }
 interface RollCount {
   presentCount: number
   absentCount: number
   lateCount: number
 }
-export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollCount, setRollCount }) => {
+export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollCount, setRollCount, stdRollState, isFiltered }) => {
   const handleRollStateChange = (rollState: RolllStateType) => {
     student.rollState = rollState
   }
@@ -31,7 +33,7 @@ export const StudentListTile: React.FC<Props> = ({ isRollMode, student, rollCoun
       </S.Content>
       {isRollMode && (
         <S.Roll>
-          <RollStateSwitcher rollCount={rollCount} setRollCount={setRollCount} onStateChange={handleRollStateChange} />
+          <RollStateSwitcher isFiltered={isFiltered} stdRollState={stdRollState} rollCount={rollCount} setRollCount={setRollCount} onStateChange={handleRollStateChange} />
         </S.Roll>
       )}
     </S.Container>

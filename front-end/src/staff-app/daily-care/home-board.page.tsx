@@ -72,16 +72,22 @@ export const HomeBoardPage: React.FC = () => {
   }
 
   useEffect(() => {
-    if (!filtered) {
-      setFilteredList(_.groupBy(studentList, "rollState"))
-      setFiltered(true)
+    if (filtered) {
+      if (filterBy && filterBy.length) {
+        filterList(filterBy)
+      }
     }
-    if (filterBy && filterBy.length) filterList(filterBy)
   }, [filterBy])
+
+  useEffect(() => {
+    if (filterBy && filterBy.length) {
+      filterList(filterBy)
+    }
+  }, [filteredList])
 
   const filterList = (filterBy: ItemType) => {
     if (filterBy === "all") {
-      setStudentList(studentList)
+      setStudentList(data?.students)
     } else if (filterBy === "present") {
       setStudentList(filteredList?.present)
     } else if (filterBy === "late") {
@@ -96,6 +102,10 @@ export const HomeBoardPage: React.FC = () => {
       setIsRollMode(false)
     } else if (action === "filter") {
       setFilterBy(type)
+      if (!filtered) {
+        setFilteredList(_.groupBy(studentList, "rollState"))
+        setFiltered(true)
+      }
     }
   }
 
@@ -110,6 +120,10 @@ export const HomeBoardPage: React.FC = () => {
   }
 
   const [rollCount, setRollCount] = useState<RollCount>(initialRollCount)
+
+  useEffect(() => {
+    setStudentList(studentList)
+  }, [rollCount])
 
   let stateList: StateList[] = [
     { type: "all", count: rollCount.presentCount + rollCount.absentCount + rollCount.lateCount },
@@ -131,9 +145,20 @@ export const HomeBoardPage: React.FC = () => {
 
         {loadState === "loaded" && studentList && (
           <>
-            {studentList?.map((s) => (
-              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} rollCount={rollCount} setRollCount={setRollCount} />
-            ))}
+            {studentList?.map((s) => {
+              const stdRollState: RolllStateType = s.rollState
+              return (
+                <StudentListTile
+                  key={s.id}
+                  isFiltered={filtered}
+                  stdRollState={stdRollState}
+                  isRollMode={isRollMode}
+                  student={s}
+                  rollCount={rollCount}
+                  setRollCount={setRollCount}
+                />
+              )
+            })}
           </>
         )}
 
